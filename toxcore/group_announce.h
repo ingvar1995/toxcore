@@ -34,7 +34,7 @@ typedef struct GC_Announce GC_Announce;
 typedef struct {
     uint8_t public_key[ENC_PUBLIC_KEY];
     IP_Port ip_port;
-} GC_Announce_Node;
+} GC_Announce_Node; // TODO: to TCP relay + CHAT PK
 
 /* Holds nodes that we receive when we send a request. Used to join groups */
 struct GC_AnnounceRequest {

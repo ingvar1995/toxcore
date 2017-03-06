@@ -563,7 +563,7 @@ int gca_send_announce_request(GC_Announce *announce, const uint8_t *self_public_
     GC_Announce_Node self_node;
 
     if (make_self_gca_node(dht, &self_node, self_public_key) == -1) {
-        return -1;
+        return -1;   // replace with tcp relay packing
     }
 
     int node_len = pack_gca_nodes(data + 1 + CHAT_ID_SIZE, sizeof(GC_Announce_Node), &self_node, 1);

@@ -320,6 +320,8 @@ static int group_announce_request(GC_Session *c, const GC_Chat *chat)
         return 0;
     }
 
+    // TODO: connect to closest nodes first?
+
     return gca_send_announce_request(c->announce, chat->self_public_key, chat->self_secret_key,
                                      CHAT_ID(chat->chat_public_key));
 }
@@ -5654,6 +5656,8 @@ int gc_group_add(GC_Session *c, uint8_t privacy_state, const uint8_t *group_name
     chat->chat_id_hash = get_chat_id_hash(CHAT_ID(chat->chat_public_key));
     chat->join_type = HJ_PRIVATE;
     self_gc_connected(chat);
+
+    // TODO: friend connection???
 
     if (group_announce_request(c, chat) == -1) {
         group_delete(c, chat);
