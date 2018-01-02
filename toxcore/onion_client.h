@@ -119,6 +119,9 @@ typedef struct {
     uint32_t dht_pk_callback_number;
 
     uint32_t run_count;
+
+    uint8_t *gc_data;
+    size_t gc_data_length;
 } Onion_Friend;
 
 typedef int (*oniondata_handler_callback)(void *object, const uint8_t *source_pubkey, const uint8_t *data,
