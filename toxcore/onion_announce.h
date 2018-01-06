@@ -31,7 +31,9 @@
 
 #define ONION_ANNOUNCE_SENDBACK_DATA_LENGTH (sizeof(uint64_t))
 
-#define ONION_ANNOUNCE_REQUEST_SIZE (1 + crypto_box_NONCEBYTES + crypto_box_PUBLICKEYBYTES + ONION_PING_ID_SIZE + crypto_box_PUBLICKEYBYTES + crypto_box_PUBLICKEYBYTES + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + crypto_box_MACBYTES)
+#define MAX_SENT_GC_NODES 1
+#define ONION_ANNOUNCE_REQUEST_MIN_SIZE (1 + crypto_box_NONCEBYTES + crypto_box_PUBLICKEYBYTES + ONION_PING_ID_SIZE + crypto_box_PUBLICKEYBYTES + crypto_box_PUBLICKEYBYTES + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + crypto_box_MACBYTES)
+#define ONION_ANNOUNCE_REQUEST_MAX_SIZE (ONION_ANNOUNCE_REQUEST_MIN_SIZE + (sizeof(Node_format) + crypto_box_PUBLICKEYBYTES) * MAX_SENT_GC_NODES)
 
 #define ONION_ANNOUNCE_RESPONSE_MIN_SIZE (1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + crypto_box_NONCEBYTES + 1 + ONION_PING_ID_SIZE + crypto_box_MACBYTES)
 #define ONION_ANNOUNCE_RESPONSE_MAX_SIZE (ONION_ANNOUNCE_RESPONSE_MIN_SIZE + sizeof(Node_format)*MAX_SENT_NODES)
@@ -63,7 +65,7 @@ typedef struct {
     Shared_Keys shared_keys_recv;
 } Onion_Announce;
 
-/* Create an onion announce request packet in packet of max_packet_length (recommended size ONION_ANNOUNCE_REQUEST_SIZE).
+/* Create an onion announce request packet in packet of max_packet_length (recommended size ONION_ANNOUNCE_REQUEST_MIN_SIZE).
  *
  * dest_client_id is the public key of the node the packet will be sent to.
  * public_key and secret_key is the kepair which will be used to encrypt the request.
@@ -79,6 +81,12 @@ typedef struct {
 int create_announce_request(uint8_t *packet, uint16_t max_packet_length, const uint8_t *dest_client_id,
                             const uint8_t *public_key, const uint8_t *secret_key, const uint8_t *ping_id, const uint8_t *client_id,
                             const uint8_t *data_public_key, uint64_t sendback_data);
+
+
+int create_gc_announce_request(uint8_t *packet, uint16_t max_packet_length, const uint8_t *dest_client_id,
+                               const uint8_t *public_key, const uint8_t *secret_key, const uint8_t *ping_id,
+                               const uint8_t *client_id, const uint8_t *data_public_key, uint64_t sendback_data,
+                               const uint8_t *gc_data, size_t gc_data_length);
 
 /* Create an onion data request packet in packet of max_packet_length (recommended size ONION_MAX_PACKET_SIZE).
  *

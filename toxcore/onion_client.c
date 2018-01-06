@@ -421,7 +421,7 @@ static int client_send_announce_request(Onion_Client *onion_c, uint32_t num, IP_
     if (ping_id == NULL)
         ping_id = zero_ping_id;
 
-    uint8_t request[ONION_ANNOUNCE_REQUEST_SIZE];
+    uint8_t request[ONION_ANNOUNCE_REQUEST_MAX_SIZE];
     int len;
 
     if (num == 0) {
@@ -429,9 +429,16 @@ static int client_send_announce_request(Onion_Client *onion_c, uint32_t num, IP_
                                       onion_c->c->self_secret_key, ping_id, onion_c->c->self_public_key, onion_c->temp_public_key, sendback);
 
     } else {
-        len = create_announce_request(request, sizeof(request), dest_pubkey, onion_c->friends_list[num - 1].temp_public_key,
-                                      onion_c->friends_list[num - 1].temp_secret_key, ping_id, onion_c->friends_list[num - 1].real_public_key, zero_ping_id,
-                                      sendback);
+        Onion_Friend friend = onion_c->friends_list[num - 1];
+        if (friend.gc_data_length) { // contact is a gc
+            len = create_gc_announce_request(request, sizeof(request), dest_pubkey, onion_c->friends_list[num - 1].temp_public_key,
+                                          onion_c->friends_list[num - 1].temp_secret_key, ping_id, onion_c->friends_list[num - 1].real_public_key, zero_ping_id,
+                                          sendback, friend.gc_data, friend.gc_data_length);
+        } else { // contact is a friend
+            len = create_announce_request(request, sizeof(request), dest_pubkey, onion_c->friends_list[num - 1].temp_public_key,
+                                          onion_c->friends_list[num - 1].temp_secret_key, ping_id, onion_c->friends_list[num - 1].real_public_key, zero_ping_id,
+                                          sendback);
+        }
     }
 
     if (len == -1) {
