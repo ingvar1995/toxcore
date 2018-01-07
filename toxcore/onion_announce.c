@@ -83,8 +83,9 @@ int create_gc_announce_request(uint8_t *packet, uint16_t max_packet_length, cons
                                const uint8_t *client_id, const uint8_t *data_public_key, uint64_t sendback_data,
                                const uint8_t *gc_data, size_t gc_data_length)
 {
-    if (max_packet_length < ONION_ANNOUNCE_REQUEST_MAX_SIZE)
+    if (max_packet_length < ONION_ANNOUNCE_REQUEST_MAX_SIZE) {
         return -1;
+    }
 
     uint8_t plain[ONION_PING_ID_SIZE + crypto_box_PUBLICKEYBYTES + crypto_box_PUBLICKEYBYTES +
                   ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + MAX_SENT_GC_NODES * (sizeof(Node_format) + crypto_box_PUBLICKEYBYTES)];
@@ -110,9 +111,9 @@ int create_gc_announce_request(uint8_t *packet, uint16_t max_packet_length, cons
     int len = encrypt_data(dest_client_id, secret_key, packet + 1, plain, sizeof(plain),
                            packet + 1 + crypto_box_NONCEBYTES + crypto_box_PUBLICKEYBYTES);
 
-//    if ((uint32_t)len + 1 + crypto_box_NONCEBYTES + crypto_box_PUBLICKEYBYTES != ONION_ANNOUNCE_REQUEST_MAX_SIZE) {
-//        return -1;
-//    }
+    if ((uint32_t)len + 1 + crypto_box_NONCEBYTES + crypto_box_PUBLICKEYBYTES != ONION_ANNOUNCE_REQUEST_MAX_SIZE) {
+        return -1;
+    }
 
     memcpy(packet + 1 + crypto_box_NONCEBYTES, public_key, crypto_box_PUBLICKEYBYTES);
 
@@ -329,12 +330,23 @@ static int add_to_entries(Onion_Announce *onion_a, IP_Port ret_ip_port, const ui
     return in_entries(onion_a, public_key);
 }
 
+static int handle_gc_announce_request(Onion_Announce *onion_a, IP_Port source, const uint8_t *packet, uint16_t length)
+{
+    if (length != ANNOUNCE_REQUEST_MAX_SIZE_RECV) {
+        return 1;
+    }
+
+    fprintf(stderr, "WOW, that's gc announce!!!111");
+
+    // TODO: implement me
+}
+
 static int handle_announce_request(void *object, IP_Port source, const uint8_t *packet, uint16_t length)
 {
     Onion_Announce *onion_a = object;
 
-    if (length != ANNOUNCE_REQUEST_MIN_SIZE_RECV && length != ANNOUNCE_REQUEST_MAX_SIZE_RECV) {
-        return 1;
+    if (length != ANNOUNCE_REQUEST_MIN_SIZE_RECV) {
+        return handle_gc_announce_request(onion_a, source, packet, length);
     }
 
     const uint8_t *packet_public_key = packet + 1 + crypto_box_NONCEBYTES;
@@ -356,7 +368,7 @@ static int handle_announce_request(void *object, IP_Port source, const uint8_t *
     uint8_t ping_id2[ONION_PING_ID_SIZE];
     generate_ping_id(onion_a, unix_time() + PING_ID_TIMEOUT, packet_public_key, source, ping_id2);
 
-    int index = -1;
+    int index;
 
     uint8_t *data_public_key = plain + ONION_PING_ID_SIZE + crypto_box_PUBLICKEYBYTES;
 
@@ -418,8 +430,9 @@ static int handle_announce_request(void *object, IP_Port source, const uint8_t *
 
     if (send_onion_response(onion_a->net, source, data,
                             1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + crypto_box_NONCEBYTES + len,
-                            packet + (length - ONION_RETURN_3)) == -1)
+                            packet + (length - ONION_RETURN_3)) == -1) {
         return 1;
+    }
 
     return 0;
 }

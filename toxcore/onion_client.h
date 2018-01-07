@@ -51,6 +51,8 @@
 
 #define MAX_PATH_NODES 32
 
+#define GC_MAX_DATA_LENGTH (sizeof(Node_format) + crypto_box_PUBLICKEYBYTES)
+
 /* If no packets are received within that interval tox will
  * be considered offline.
  */
@@ -120,7 +122,7 @@ typedef struct {
 
     uint32_t run_count;
 
-    uint8_t *gc_data;
+    uint8_t gc_data[GC_MAX_DATA_LENGTH];
     size_t gc_data_length;
 } Onion_Friend;
 
