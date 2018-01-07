@@ -320,8 +320,7 @@ static int group_announce_request(GC_Session *c, const GC_Chat *chat)
         return 0;
     }
 
-    return gca_send_announce_request(c->announce, chat->self_public_key, chat->self_secret_key,
-                                     CHAT_ID(chat->chat_public_key));
+    return 0;
 }
 
 /* Sends a get nodes request to the DHT if group is public.
@@ -418,12 +417,6 @@ static void update_gc_addresses_cb(GC_Announce *announce, const uint8_t *chat_id
     }
 }
 
-void group_callback_update_addresses(GC_Announce *announce, void (*function)(GC_Announce *, const uint8_t *, void *),
-                                     void *object)
-{
-    announce->update_addresses = function;
-    announce->update_addresses_obj = object;
-}
 
 /* Returns the number of confirmed peers in peerlist */
 static uint32_t get_gc_confirmed_numpeers(const GC_Chat *chat)
@@ -2132,7 +2125,7 @@ static void do_gc_shared_state_changes(GC_Session *c, const GC_Chat *chat, const
         if (chat->shared_state.privacy_state == GI_PUBLIC) {
             group_announce_request(c, chat);
         } else if (chat->shared_state.privacy_state == GI_PRIVATE) {
-            gca_cleanup(c->announce, CHAT_ID(chat->chat_public_key));
+//            gca_cleanup(c->announce, CHAT_ID(chat->chat_public_key));
         }
 
         // TODO: remove gc contacts
@@ -3458,7 +3451,7 @@ int gc_founder_set_privacy_state(Messenger *m, int groupnumber, uint8_t new_priv
     }
 
     if (new_privacy_state == GI_PRIVATE) {
-        gca_cleanup(c->announce, CHAT_ID(chat->chat_public_key));
+//        gca_cleanup(c->announce, CHAT_ID(chat->chat_public_key));
     } else {
         group_announce_request(c, chat);
     }
@@ -5041,7 +5034,6 @@ int gc_peer_delete(Messenger *m, int groupnumber, uint32_t peernumber, const uin
     }
 
     kill_tcp_connection_to(chat->tcp_conn, gconn->tcp_connection_num);
-    gca_peer_cleanup(m->group_handler->announce, CHAT_ID(chat->chat_public_key), gconn->addr.public_key);
     gcc_peer_cleanup(gconn);
 
     --chat->numpeers;
@@ -6137,7 +6129,6 @@ GC_Session *new_groupchats(Messenger *m)
     networking_registerhandler(m->net, NET_PACKET_GC_LOSSLESS, &handle_gc_udp_packet, m);
     networking_registerhandler(m->net, NET_PACKET_GC_LOSSY, &handle_gc_udp_packet, m);
     networking_registerhandler(m->net, NET_PACKET_GC_HANDSHAKE, &handle_gc_udp_packet, m);
-    group_callback_update_addresses(c->announce, update_gc_addresses_cb, c);
 
     return c;
 }
@@ -6156,7 +6147,7 @@ static int group_delete(GC_Session *c, GC_Chat *chat)
     mod_list_cleanup(chat);
     sanctions_list_cleanup(chat);
     kill_tcp_connections(chat->tcp_conn);
-    gca_cleanup(c->announce, CHAT_ID(chat->chat_public_key));
+//    gca_cleanup(c->announce, CHAT_ID(chat->chat_public_key));
     gcc_cleanup(chat);
 
     if (chat->group) {
@@ -6217,8 +6208,7 @@ void kill_groupchats(GC_Session *c)
     networking_registerhandler(c->messenger->net, NET_PACKET_GC_LOSSY, NULL, NULL);
     networking_registerhandler(c->messenger->net, NET_PACKET_GC_LOSSLESS, NULL, NULL);
     networking_registerhandler(c->messenger->net, NET_PACKET_GC_HANDSHAKE, NULL, NULL);
-    group_callback_update_addresses(c->announce, NULL, NULL);
-    kill_gca(c->announce);
+//    kill_gca(c->announce);
     free(c);
 }
 

@@ -240,7 +240,7 @@ struct Messenger {
     uint32_t numfriends;
 
     GC_Session *group_handler;
-    GC_Announce *group_announce;
+    GC_Announces_List *group_announce;
 
 #define NUM_SAVED_TCP_RELAYS 8
     uint8_t has_added_relays; // If the first connection has occurred in do_messenger
