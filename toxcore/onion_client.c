@@ -633,8 +633,6 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
     if (length < ONION_ANNOUNCE_RESPONSE_MIN_SIZE || length > ONION_ANNOUNCE_RESPONSE_MAX_SIZE)
         return 1;
 
-    uint16_t len_nodes = length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE;
-
     uint8_t public_key[crypto_box_PUBLICKEYBYTES];
     IP_Port ip_port;
     uint32_t path_num;
@@ -643,8 +641,8 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
     if (num > onion_c->num_friends)
         return 1;
 
-    uint8_t plain[1 + ONION_PING_ID_SIZE + len_nodes];
-    int len = -1;
+    uint8_t plain[1 + ONION_PING_ID_SIZE + length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE];
+    int len;
 
     if (num == 0) {
         len = decrypt_data(public_key, onion_c->c->self_secret_key, packet + 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH,
@@ -665,16 +663,26 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
 
     if (client_add_to_list(onion_c, num, public_key, ip_port, plain[0], plain + 1, path_num) == -1)
         return 1;
-
+    
+    uint16_t len_nodes = plain[1 + ONION_PING_ID_SIZE] * sizeof(Node_format);
     if (len_nodes != 0) {
         Node_format nodes[MAX_SENT_NODES];
-        int num_nodes = unpack_nodes(nodes, MAX_SENT_NODES, 0, plain + 1 + ONION_PING_ID_SIZE, len_nodes, 0);
+        int num_nodes = unpack_nodes(nodes, plain[1 + ONION_PING_ID_SIZE], 0, plain + 2 + ONION_PING_ID_SIZE, len_nodes, 0);
 
-        if (num_nodes <= 0)
+        if (num_nodes < 0)
             return 1;
 
         if (client_ping_nodes(onion_c, num, nodes, num_nodes, source) == -1)
             return 1;
+    }
+
+    if (len_nodes < length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE && false) {
+        GC_Announce announces[MAX_SENT_GC_NODES];
+        uint16_t gc_announces_count = plain[1 + ONION_PING_ID_SIZE + len_nodes];
+        memcpy(announces, plain + 2 + ONION_PING_ID_SIZE + len_nodes, gc_announces_count * sizeof(GC_Announce));
+
+        fprintf(stderr, "in handle ann response: %d\n", gc_announces_count);
+        // TODO: add to peers list
     }
 
     //TODO: LAN vs non LAN ips?, if we are connected only to LAN, are we offline?
