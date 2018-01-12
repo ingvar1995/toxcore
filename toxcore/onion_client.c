@@ -432,7 +432,6 @@ static int client_send_announce_request(Onion_Client *onion_c, uint32_t num, IP_
         Onion_Friend friend = onion_c->friends_list[num - 1];
 
         if (friend.gc_data_length) { // contact is a gc
-            fprintf(stderr, "Sending gc ann request");
             len = create_gc_announce_request(request, sizeof(request), dest_pubkey, friend.temp_public_key,
                                           friend.temp_secret_key, ping_id, friend.real_public_key, zero_ping_id,
                                           sendback, friend.gc_data, friend.gc_data_length);
@@ -637,7 +636,7 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
     IP_Port ip_port;
     uint32_t path_num;
     uint32_t num = check_sendback(onion_c, packet + 1, public_key, &ip_port, &path_num);
-
+    fprintf(stderr, "_1\n");
     if (num > onion_c->num_friends)
         return 1;
 
@@ -657,17 +656,21 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
                            packet + 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + crypto_box_NONCEBYTES,
                            length - (1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + crypto_box_NONCEBYTES), plain);
     }
-
+    fprintf(stderr, "_2\n");
     if ((uint32_t)len != sizeof(plain))
         return 1;
 
     if (client_add_to_list(onion_c, num, public_key, ip_port, plain[0], plain + 1, path_num) == -1)
         return 1;
-    
-    uint16_t len_nodes = plain[1 + ONION_PING_ID_SIZE] * sizeof(Node_format);
-    if (len_nodes != 0) {
+    fprintf(stderr, "_3\n");
+    uint16_t len_nodes = 0;
+    uint8_t nodes_count = plain[1 + ONION_PING_ID_SIZE];
+    if (nodes_count > 0) {
+        if (nodes_count > MAX_SENT_NODES) {
+            return 1;
+        }
         Node_format nodes[MAX_SENT_NODES];
-        int num_nodes = unpack_nodes(nodes, plain[1 + ONION_PING_ID_SIZE], 0, plain + 2 + ONION_PING_ID_SIZE, len_nodes, 0);
+        int num_nodes = unpack_nodes(nodes, nodes_count, &len_nodes, plain + 2 + ONION_PING_ID_SIZE, nodes_count, 0);
 
         if (num_nodes < 0)
             return 1;
@@ -675,16 +678,20 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
         if (client_ping_nodes(onion_c, num, nodes, num_nodes, source) == -1)
             return 1;
     }
-
-    if (len_nodes < length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE && false) {
+    fprintf(stderr, "_4 %d %d\n", len_nodes + 2, length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE);
+    if (len_nodes + 2 < length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE) {
         GC_Announce announces[MAX_SENT_GC_NODES];
-        uint16_t gc_announces_count = plain[1 + ONION_PING_ID_SIZE + len_nodes];
-        memcpy(announces, plain + 2 + ONION_PING_ID_SIZE + len_nodes, gc_announces_count * sizeof(GC_Announce));
-
+        uint16_t gc_announces_count = plain[2 + ONION_PING_ID_SIZE + len_nodes];
+        fprintf(stderr, "_5\n");
         fprintf(stderr, "in handle ann response: %d\n", gc_announces_count);
+
+        if (gc_announces_count) {
+            memcpy(announces, plain + 3 + ONION_PING_ID_SIZE + len_nodes, gc_announces_count * sizeof(GC_Announce));
+        }
+
         // TODO: add to peers list
     }
-
+    fprintf(stderr, "_6\n");
     //TODO: LAN vs non LAN ips?, if we are connected only to LAN, are we offline?
     onion_c->last_packet_recv = unix_time();
     return 0;
