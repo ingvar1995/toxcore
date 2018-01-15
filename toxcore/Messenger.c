@@ -37,6 +37,7 @@
 #include "group_chats.h"
 #include "group_moderation.h"
 #include "onion_client.h"
+#include "DHT.h"
 
 static void set_friend_status(Messenger *m, int32_t friendnumber, uint8_t status);
 static int write_cryptpacket_id(const Messenger *m, int32_t friendnumber, uint8_t packet_id, const uint8_t *data,
@@ -309,10 +310,15 @@ int32_t m_add_friend_gc(Messenger *m, const GC_Chat *chat)
         Onion_Friend *onion_friend = &m->onion_c->friends_list[onion_friend_number];
 
         Node_format tcp_relay[1]; // TODO: send > 1 relay?
-        tcp_copy_connected_relays(chat->tcp_conn, tcp_relay, 1);
-        memcpy(onion_friend->gc_data, tcp_relay, sizeof(Node_format));
-        memcpy(onion_friend->gc_data + sizeof(Node_format), chat->self_public_key, ENC_PUBLIC_KEY);
-        onion_friend->gc_data_length = GC_MAX_DATA_LENGTH;
+        int tcp_num = tcp_copy_connected_relays(chat->tcp_conn, tcp_relay, 1);
+
+        if (tcp_num == 1) {
+            memcpy(onion_friend->gc_data, tcp_relay, sizeof(Node_format));
+            memcpy(onion_friend->gc_data + sizeof(Node_format), chat->self_public_key, ENC_PUBLIC_KEY);
+            onion_friend->gc_data_length = GC_MAX_DATA_LENGTH;
+        } else {
+            onion_friend->gc_data_length = -1;  // new gc - no connected relays yet
+        }
     }
 
     return friend_number;
@@ -2353,6 +2359,25 @@ uint32_t messenger_run_interval(const Messenger *m)
     }
 }
 
+static void update_gc_friends_data(const Messenger *m)
+{
+    int i;
+    Node_format tcp_relay[1]; // TODO: send > 1 relay?
+    for (i = 0; i < m->onion_c->num_friends; i++) {
+        Onion_Friend *onion_friend = &m->onion_c->friends_list[i];
+        if (m->onion_c->friends_list[i].gc_data_length != -1) {
+            continue;
+        }
+        GC_Chat *chat = gc_get_group_by_public_key(m->group_handler, onion_friend->real_public_key);
+        int tcp_num = tcp_copy_connected_relays(chat->tcp_conn, tcp_relay, 1);
+        if (tcp_num == 1) {
+            memcpy(onion_friend->gc_data, tcp_relay, sizeof(Node_format));
+            memcpy(onion_friend->gc_data + sizeof(Node_format), chat->self_public_key, ENC_PUBLIC_KEY);
+            onion_friend->gc_data_length = GC_MAX_DATA_LENGTH;
+        }
+    }
+}
+
 /* The main loop that needs to be run at least 20 times per second. */
 void do_messenger(Messenger *m)
 {
@@ -2392,6 +2417,7 @@ void do_messenger(Messenger *m)
     do_friend_connections(m->fr_c);
     do_gc(m->group_handler);
     do_friends(m);
+    update_gc_friends_data(m);
     connection_status_cb(m);
 
 #ifdef TOX_LOGGER
