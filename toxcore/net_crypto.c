@@ -1835,7 +1835,6 @@ static int tcp_data_callback(void *object, int id, const uint8_t *data, uint16_t
 static int tcp_oob_callback(void *object, const uint8_t *public_key, unsigned int tcp_connections_number,
                             const uint8_t *data, uint16_t length)
 {
-    fprintf(stderr, "oob callback");
     if (length == 0 || length > MAX_CRYPTO_PACKET_SIZE)
         return -1;
 

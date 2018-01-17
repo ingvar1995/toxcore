@@ -907,7 +907,6 @@ static int tcp_data_callback(void *object, uint32_t number, uint8_t connection_i
 
 static int tcp_oob_callback(void *object, const uint8_t *public_key, const uint8_t *data, uint16_t length)
 {
-    fprintf(stderr, "handle_gc_tcp_oob_packet1\n");
     if (length == 0)
         return -1;
 
