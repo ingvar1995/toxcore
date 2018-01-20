@@ -329,11 +329,14 @@ int tcp_send_oob_packet(TCP_Connections *tcp_c, unsigned int tcp_connections_num
 {
     TCP_con *tcp_con = get_tcp_connection(tcp_c, tcp_connections_number);
 
-    if (!tcp_con)
+    if (!tcp_con) {
+        fprintf(stderr, "!tcp con\n");
         return -1;
+    }
 
-    if (tcp_con->status != TCP_CONN_CONNECTED)
+    if (tcp_con->status != TCP_CONN_CONNECTED) {
         return -1;
+    }
 
     int ret = send_oob_packet(tcp_con->connection, public_key, packet, length);
 
