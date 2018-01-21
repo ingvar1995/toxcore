@@ -2715,8 +2715,15 @@ static int groups_load(Messenger *m, const uint8_t *data, uint32_t length)
 
         int ret = gc_group_load(m->group_handler, &temp);
 
-        if (ret == -1)
+        if (ret == -1) {
             LOGGER_WARNING("Failed to join group");
+        }
+        else {
+            GC_Chat *chat = gc_get_group(m->group_handler, ret);
+            if (chat->shared_state.privacy_state == GI_PUBLIC) {
+                //m_add_friend_gc(m, chat);
+            }
+        }
     }
 
     return num;
