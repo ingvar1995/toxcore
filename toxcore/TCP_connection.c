@@ -27,6 +27,7 @@
 
 #include "TCP_connection.h"
 #include "util.h"
+#include "TCP_client.h"
 
 /* Set the size of the array to num.
  *
@@ -439,6 +440,21 @@ static int find_tcp_connection_relay(TCP_Connections *tcp_c, const uint8_t *rela
     }
 
     return -1;
+}
+
+IP_Port* get_tcp_connection_relay_ip_port_by_pk(TCP_Connections *tcp_c, const uint8_t *relay_pk)
+{
+    int connection_number = find_tcp_connection_relay(tcp_c, relay_pk);
+    if (connection_number < 0) {
+        return NULL;
+    }
+
+    TCP_con *tcp_con = get_tcp_connection(tcp_c, connection_number);
+    if (!tcp_con || !tcp_con->connection) {
+        return NULL;
+    }
+
+    return &tcp_con->connection->ip_port;
 }
 
 /* Create a new TCP connection to public_key.
@@ -1120,8 +1136,9 @@ int add_tcp_relay_connection(TCP_Connections *tcp_c, int connections_number, IP_
 {
     TCP_Connection_to *con_to = get_connection(tcp_c, connections_number);
 
-    if (!con_to)
+    if (!con_to) {
         return -1;
+    }
 
     int tcp_connections_number = find_tcp_connection_relay(tcp_c, relay_pk);
 
@@ -1136,8 +1153,9 @@ int add_tcp_relay_connection(TCP_Connections *tcp_c, int connections_number, IP_
 
         TCP_con *tcp_con = get_tcp_connection(tcp_c, tcp_connections_number);
 
-        if (!tcp_con)
+        if (!tcp_con) {
             return -1;
+        }
 
         if (add_tcp_connection_to_conn(con_to, tcp_connections_number) == -1) {
             return -1;

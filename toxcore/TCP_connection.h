@@ -106,6 +106,7 @@ typedef struct {
     uint16_t onion_num_conns;
 } TCP_Connections;
 
+
 /* Send a packet to the TCP connection.
  *
  * return -1 on failure.
@@ -167,6 +168,7 @@ void set_onion_packet_tcp_connection_callback(TCP_Connections *tcp_c, int (*tcp_
 void set_oob_packet_tcp_connection_callback(TCP_Connections *tcp_c, int (*tcp_oob_callback)(void *object,
         const uint8_t *public_key, unsigned int tcp_connections_number, const uint8_t *data, uint16_t length), void *object);
 
+IP_Port* get_tcp_connection_relay_ip_port_by_pk(TCP_Connections *tcp_c, const uint8_t *relay_pk);
 /* Create a new TCP connection to public_key.
  *
  * public_key must be the counterpart to the secret key that the other peer used with new_tcp_connections().
