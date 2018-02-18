@@ -312,7 +312,6 @@ int tcp_send_onion_request(TCP_Connections *tcp_c, unsigned int tcp_connections_
 
     if (tcp_c->tcp_connections[tcp_connections_number].status == TCP_CONN_CONNECTED) {
         int ret = send_onion_request(tcp_c->tcp_connections[tcp_connections_number].connection, data, length);
-
         if (ret == 1)
             return 0;
     }
@@ -442,19 +441,25 @@ static int find_tcp_connection_relay(TCP_Connections *tcp_c, const uint8_t *rela
     return -1;
 }
 
-IP_Port* get_tcp_connection_relay_ip_port_by_pk(TCP_Connections *tcp_c, const uint8_t *relay_pk)
+bool copy_tcp_connection_relay_ip_port_by_pk(TCP_Connections *tcp_c, const uint8_t *relay_pk, IP_Port *dest)
 {
+    if (!dest || !tcp_c || !relay_pk) {
+        return false;
+    }
+
     int connection_number = find_tcp_connection_relay(tcp_c, relay_pk);
     if (connection_number < 0) {
-        return NULL;
+        return false;
     }
 
     TCP_con *tcp_con = get_tcp_connection(tcp_c, connection_number);
     if (!tcp_con || !tcp_con->connection) {
-        return NULL;
+        return false;
     }
 
-    return &tcp_con->connection->ip_port;
+    memcpy(dest, &tcp_con->connection->ip_port, sizeof(IP_Port));
+
+    return true;
 }
 
 /* Create a new TCP connection to public_key.
@@ -689,7 +694,7 @@ static int set_tcp_connection_status(TCP_Connection_to *con_to, unsigned int tcp
  * return 0 on success.
  * return -1 on failure.
  */
-static int kill_tcp_relay_connection(TCP_Connections *tcp_c, int tcp_connections_number)
+int kill_tcp_relay_connection(TCP_Connections *tcp_c, int tcp_connections_number)
 {
     TCP_con *tcp_con = get_tcp_connection(tcp_c, tcp_connections_number);
 
@@ -875,6 +880,8 @@ static int tcp_response_callback(void *object, uint8_t connection_id, const uint
     if (set_tcp_connection_status(con_to, tcp_connections_number, TCP_CONNECTIONS_STATUS_REGISTERED, connection_id) == -1)
         return -1;
 
+    fprintf(stderr, "registered\n");
+
     set_tcp_connection_number(tcp_con->connection, connection_id, connections_number);
 
     return 0;
@@ -891,7 +898,7 @@ static int tcp_status_callback(void *object, uint32_t number, uint8_t connection
 
     if (!con_to || !tcp_con)
         return -1;
-
+    fprintf(stderr, "status: %d\n", status);
     if (status == 1) {
         if (set_tcp_connection_status(con_to, tcp_connections_number, TCP_CONNECTIONS_STATUS_REGISTERED, connection_id) == -1)
             return -1;
@@ -945,6 +952,7 @@ static int tcp_oob_callback(void *object, const uint8_t *public_key, const uint8
 {
     if (length == 0)
         return -1;
+    fprintf(stderr, "oob %d\n", length);
 
     TCP_Client_Connection *TCP_client_con = object;
     TCP_Connections *tcp_c = TCP_client_con->custom_object;
