@@ -952,7 +952,6 @@ static int tcp_oob_callback(void *object, const uint8_t *public_key, const uint8
 {
     if (length == 0)
         return -1;
-    fprintf(stderr, "oob %d\n", length);
 
     TCP_Client_Connection *TCP_client_con = object;
     TCP_Connections *tcp_c = TCP_client_con->custom_object;
